@@ -1,0 +1,73 @@
+---
+title: "Analyse préliminaire"
+author: "EI ATHLETE 2024"
+date: "2024-06-03"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Introduction
+
+L'objectif de cette analyse prélminaire est de réaliser une analyse en composantes principales sur les variables prénatales
+
+## chargement des données données et des packages utiles
+
+- packages
+
+```{r, message = FALSE}
+library(factoextra)
+library(readxl)
+```
+
+- données
+
+```{r}
+load("data/exposome.RData")
+codebook = as.data.frame(read_xlsx("data/codebook.xlsx"))
+exposome_num = exposome[ , codebook$variable_name[1:222][which(codebook$var_type[1:222] == "numeric")]]
+exposome_fac = exposome[ , codebook$variable_name[1:222][which(codebook$var_type[1:222] == "factor")]]
+```
+
+```{r}
+X_num_preg = exposome_num[ ,grep("preg", colnames(exposome_num))]
+```
+
+On réalise une ACP sur ce jeu de données réduits
+
+```{r}
+fit = prcomp(X_num_preg, scale = TRUE)
+```
+
+On visualise les résultats de l'ACP sur le premier plan principal
+
+```{r}
+fviz_pca_biplot(fit, habillage = covariates$h_cohort)
+```
+
+On visualise un effet cohorte "indésirable"...
+
+Si on veut regarder le lien entre un phenotype d'intérêt (paramètre de santé et une exposition particulière), il faut intégrer la variable cohorte dans le modèle de régression.
+
+```{r}
+df = data.frame(X_num_preg, 
+                cohort = covariates$h_cohort,
+                phenotype[, -1])
+
+fit.lm = lm(hs_asthma ~ -1 + cohort + h_abs_ratio_preg_Log, 
+            data = df)
+```
+
+Lien entre variables qualitatives et quantitatives ou qualitatives
+
+Utilisation de la fonction catdes 
+
+
+```{r}
+df_expo = exposome[, -1]
+```
+
+

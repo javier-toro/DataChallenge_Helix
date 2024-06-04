@@ -1,0 +1,75 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r, message = FALSE}
+library(factoextra)
+library(FactoMineR)
+library(readxl)
+library(reshape2)
+```
+
+
+On extrait les valeurs numériques et les facteurs
+```{r}
+load("data/exposome.RData")
+codebook = as.data.frame(read_xlsx("data/codebook.xlsx"))
+exposome_num = exposome[ , codebook$variable_name[1:222][which(codebook$var_type[1:222] == "numeric")]]
+exposome_fac = exposome[ , codebook$variable_name[1:222][which(codebook$var_type[1:222] == "factor")]]
+```
+
+On isole les valeurs prénatales et les valeurs post-natales
+```{r}
+X_num_preg = exposome_num[ , codebook$variable_name[1:222][which(codebook$period[1:222] == "Pregnancy" & codebook$var_type[1:222] == "numeric")]]
+X_num_post = exposome_num[ , codebook$variable_name[1:222][which(codebook$period[1:222] != "Pregnancy" & codebook$var_type[1:222] == "numeric")]]
+```
+
+```{r}
+df = data.frame(X_num_preg, 
+                cohort = covariates$h_cohort,
+                phenotype[, -1])
+
+fit_num_preg = prcomp(X_num_preg, scale = TRUE)
+fit_num_post = prcomp(X_num_post, scale = TRUE)
+```
+
+
+```{r}
+pvalues_mat <- matrix( , nrow=dim(X_num_preg)[2], ncol=dim(phenotype[, 2:6])[2])
+
+
+i = 1
+for (pheno in colnames(phenotype[, 2:6])) {
+  j = 1
+  if (all(phenotype[, pheno] %in% 0:1)) {
+    for (expo in colnames(X_num_preg)) {
+      glm = glm(phenotype[, pheno] ~ cohort + exposome_num[, expo], family = binomial, data = df)
+      pvalues_mat[j, i] <- tail(summary(glm)$coefficient, n=1)[4]
+      j = j + 1
+    }
+  }
+  
+  else {
+    for (expo in colnames(X_num_preg)) {
+      glm = glm(phenotype[, pheno] ~ cohort + exposome_num[, expo], family = gaussian, data = df)
+      pvalues_mat[j, i] <- tail(summary(glm)$coefficient, n=1)[4]
+      j = j + 1
+    }
+  }
+  i = i + 1
+}
+
+pvalues_preg <- as.data.frame(pvalues_mat)
+colnames(pvalues_preg) <- colnames(phenotype[, 2:6])
+rownames(pvalues_preg) <- colnames(X_num_preg)
+
+pvalues_melt <- melt(pvalues_preg)
+pvalues_melt$expo <- rep(rownames(pvalues_preg), 5)
+
+print(head(pvalues_melt))
+ggplot(pvalues_melt, aes(x = variable, y = expo)) + 
+  geom_tile(aes(fill = value), colour = "white") +
+  scale_fill_gradient(low = "blue", high = "white") +
+  scale_x_discrete(guide = guide_axis(angle = 90))
+```
