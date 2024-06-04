@@ -1,0 +1,46 @@
+---
+title: "Analysis of Cvariant Data influeces"
+author: "Us"
+date: "2024-06-03"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r code}
+# Load necessary libraries
+library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+library(ggfortify)
+library(dplyr)
+library(pheatmap)
+library(factoextra)
+library(FactoMineR)
+
+# Split data so we only have numerical columns
+exposome_num <- exposome %>% select_if(is.numeric)
+exposome_factors <- exposome %>% select_if(is.factor)
+
+# Do a PCA
+pca <- prcomp(exposome_num, scale = TRUE)
+
+plotting_data <- cbind(as.data.frame(pca$x), covariates)
+
+# Get list of column names in covariates
+covariate_names <- colnames(covariates)
+
+# Do this for every covariate
+for (covariate in covariate_names) {
+  # Show scatter plot on principal plane
+  print(autoplot(pca, data = plotting_data, colour = covariate))
+  #readline(prompt = "Press [Enter] to see the next plot...")
+}
+
+# Show that the cohorts are not created at the same time because
+# year of birth is linked to cohort
+table(covariates$h_cohort, covariates$e3_yearbir_None)
+
+```
