@@ -21,58 +21,49 @@ exposome_num = exposome[ , codebook$variable_name[1:222][which(codebook$var_type
 exposome_fac = exposome[ , codebook$variable_name[1:222][which(codebook$var_type[1:222] == "factor")]]
 ```
 
-On isole les valeurs prénatales et les valeurs post-natales
-```{r}
-X_num_preg = exposome_num[ , codebook$variable_name[1:222][which(codebook$period[1:222] == "Pregnancy" & codebook$var_type[1:222] == "numeric")]]
-X_num_post = exposome_num[ , codebook$variable_name[1:222][which(codebook$period[1:222] != "Pregnancy" & codebook$var_type[1:222] == "numeric")]]
-```
+<!-- On isole les valeurs prénatales et les valeurs post-natales -->
+<!-- ```{r} -->
+<!-- X_num_preg = exposome_num[ , codebook$variable_name[1:222][which(codebook$period[1:222] == "Pregnancy" & codebook$var_type[1:222] == "numeric")]] -->
+<!-- X_num_post = exposome_num[ , codebook$variable_name[1:222][which(codebook$period[1:222] != "Pregnancy" & codebook$var_type[1:222] == "numeric")]] -->
+<!-- ``` -->
 
 ```{r}
-df = data.frame(X_num_preg, 
+df = data.frame(exposome_num, 
                 cohort = covariates$h_cohort,
                 phenotype[, -1])
 
-fit_num_preg = prcomp(X_num_preg, scale = TRUE)
-fit_num_post = prcomp(X_num_post, scale = TRUE)
+fit_num = prcomp(exposome_num, scale = TRUE)
 ```
 
 
 ```{r}
-pvalues_mat <- matrix( , nrow=dim(X_num_preg)[2], ncol=dim(phenotype[, 2:6])[2])
+pvalues_mat <- matrix( , nrow=dim(exposome_num)[2], ncol=2)
 
-i = 1
-for (pheno in colnames(phenotype[, 2:6])) {
-  j = 1
-  if (all(phenotype[, pheno] %in% 0:1)) {
-    for (expo in colnames(X_num_preg)) {
-      glm = glm(phenotype[, pheno] ~ cohort + exposome_num[, expo], family = binomial, data = df)
-      pvalues_mat[j, i] <- tail(summary(glm)$coefficient, n=1)[4]
-      j = j + 1
-    }
-  }
-  
-  else {
-    for (expo in colnames(X_num_preg)) {
-      glm = glm(phenotype[, pheno] ~ cohort + exposome_num[, expo], family = gaussian, data = df)
-      pvalues_mat[j, i] <- tail(summary(glm)$coefficient, n=1)[4]
-      j = j + 1
-    }
-  }
-  i = i + 1
+j = 1
+for (expo in colnames(exposome_num)) {
+  glm = glm(phenotype[, "hs_correct_raven"] ~ cohort + exposome_num[, expo], family = gaussian, data = df)
+  pvalues_mat[j, 1] <- tail(summary(glm)$coefficient, n=1)[4]
+  j = j + 1
 }
 
-colnames(pvalues_mat) <- colnames(phenotype[, 2:6])
-rownames(pvalues_mat) <- colnames(X_num_preg)
+j = 1
+for (expo in colnames(exposome_num)) {
+  glm = glm(phenotype[, "hs_Gen_Tot"] ~ cohort + exposome_num[, expo], family = gaussian, data = df)
+  pvalues_mat[j, 2] <- tail(summary(glm)$coefficient, n=1)[4]
+  j = j + 1
+}
+
+colnames(pvalues_mat) <- c("hs_correct_raven", "hs_Gen_Tot")
+rownames(pvalues_mat) <- colnames(exposome_num)
 
 ```
 
 
-On utilise ensuite une heatmap pour représenter l'effet des exposomes sur les phénotypes
+On utilise ensuite une heatmap pour représenter l'effet des exposomes sur les phénotypes.
 ```{r}
 
 mat_row = data.frame(family = codebook$family[1:222][which(codebook$variable_name[1:222] %in% rownames(pvalues_mat))])
 rownames(mat_row) <- rownames(pvalues_mat)
-
 
 mat_colors <- list(family = colorRampPalette(brewer.pal(8, "Paired"))(length(unique(codebook$family[1:222]))))
 names(mat_colors$family) <- unique(codebook$family[1:222])
@@ -81,10 +72,11 @@ names(mat_colors$family) <- unique(codebook$family[1:222])
 # pvalues_melt$expo <- rep(rownames(pvalues_preg), 5)
 
 pheatmap(
-  mat = pvalues_mat,
+  mat = -log(pvalues_mat),
   color = colorRampPalette(c("#000091", "white", "#E1000F"))(50),
   annotation_row = mat_row,
   cluster_rows = FALSE,
+  cluster_cols = FALSE,
   fontsize          = 10,
   main              = "Exposomes' correlation to phenotypes"
 )
@@ -94,4 +86,5 @@ pheatmap(
 # scale_fill_gradient(low = "blue", high = "white") +
 # scale_x_discrete(guide = guide_axis(angle = 90))
 ```
+
 
