@@ -65,16 +65,17 @@ On utilise ensuite une heatmap pour représenter l'effet des exposomes sur les p
 mat_row = data.frame(family = codebook$family[1:222][which(codebook$variable_name[1:222] %in% rownames(pvalues_mat))])
 rownames(mat_row) <- rownames(pvalues_mat)
 
-mat_colors <- list(family = colorRampPalette(brewer.pal(8, "Paired"))(length(unique(codebook$family[1:222]))))
+mat_colors <- list(family = colorRampPalette(brewer.pal(8, "Set2"))(length(unique(codebook$family[1:222]))))
 names(mat_colors$family) <- unique(codebook$family[1:222])
 
 # pvalues_melt <- melt(pvalues_preg)
 # pvalues_melt$expo <- rep(rownames(pvalues_preg), 5)
 
 pheatmap(
-  mat = -log(pvalues_mat),
+  mat = pvalues_mat,
   color = colorRampPalette(c("#000091", "white", "#E1000F"))(50),
   annotation_row = mat_row,
+  annotation_colors = mat_colors,
   cluster_rows = FALSE,
   cluster_cols = FALSE,
   fontsize          = 10,
@@ -85,6 +86,32 @@ pheatmap(
 # geom_tile(aes(fill = value), colour = "white") +
 # scale_fill_gradient(low = "blue", high = "white") +
 # scale_x_discrete(guide = guide_axis(angle = 90))
+```
+
+
+On essaie cette fois de repérer les p-values inférieures à 0,05
+
+```{r}
+
+neg_log_p_values = -log10(pvalues_mat)
+threshold <- -log10(0.05)
+annotations <- as.data.frame(ifelse(neg_log_p_values >= threshold, "Significant", "Non-Significant"))
+rownames(annotations) <- rownames(neg_log_p_values)
+colnames(annotations) <- colnames(neg_log_p_values)
+
+pheatmap(
+  mat = neg_log_p_values,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  annotation_row = annotations,
+  fontsize          = 5,
+  main              = "Exposomes' correlation to phenotypes"
+)
+
+significant_values = as.data.frame(annotations[annotations$hs_Gen_Tot == "Significant", "hs_Gen_Tot"])
+rownames(significant_values) <- rownames(annotations[annotations$hs_Gen_Tot == "Significant", ])
+colnames(significant_values) <- "hs_Gen_tot"
+
 ```
 
 
