@@ -8,6 +8,8 @@ library(factoextra)
 library(FactoMineR)
 library(readxl)
 library(reshape2)
+library(pheatmap)
+library(RColorBrewer)
 ```
 
 
@@ -38,7 +40,6 @@ fit_num_post = prcomp(X_num_post, scale = TRUE)
 ```{r}
 pvalues_mat <- matrix( , nrow=dim(X_num_preg)[2], ncol=dim(phenotype[, 2:6])[2])
 
-
 i = 1
 for (pheno in colnames(phenotype[, 2:6])) {
   j = 1
@@ -60,16 +61,37 @@ for (pheno in colnames(phenotype[, 2:6])) {
   i = i + 1
 }
 
-pvalues_preg <- as.data.frame(pvalues_mat)
-colnames(pvalues_preg) <- colnames(phenotype[, 2:6])
-rownames(pvalues_preg) <- colnames(X_num_preg)
+colnames(pvalues_mat) <- colnames(phenotype[, 2:6])
+rownames(pvalues_mat) <- colnames(X_num_preg)
 
-pvalues_melt <- melt(pvalues_preg)
-pvalues_melt$expo <- rep(rownames(pvalues_preg), 5)
-
-print(head(pvalues_melt))
-ggplot(pvalues_melt, aes(x = variable, y = expo)) + 
-  geom_tile(aes(fill = value), colour = "white") +
-  scale_fill_gradient(low = "blue", high = "white") +
-  scale_x_discrete(guide = guide_axis(angle = 90))
 ```
+
+
+On utilise ensuite une heatmap pour représenter l'effet des exposomes sur les phénotypes
+```{r}
+
+mat_row = data.frame(family = codebook$family[1:222][which(codebook$variable_name[1:222] %in% rownames(pvalues_mat))])
+rownames(mat_row) <- rownames(pvalues_mat)
+
+
+mat_colors <- list(family = colorRampPalette(brewer.pal(8, "Paired"))(length(unique(codebook$family[1:222]))))
+names(mat_colors$family) <- unique(codebook$family[1:222])
+
+# pvalues_melt <- melt(pvalues_preg)
+# pvalues_melt$expo <- rep(rownames(pvalues_preg), 5)
+
+pheatmap(
+  mat = pvalues_mat,
+  color = colorRampPalette(c("#000091", "white", "#E1000F"))(50),
+  annotation_row = mat_row,
+  cluster_rows = FALSE,
+  fontsize          = 10,
+  main              = "Exposomes' correlation to phenotypes"
+)
+
+# ggplot(pvalues_melt, aes(x = variable, y = expo)) + 
+# geom_tile(aes(fill = value), colour = "white") +
+# scale_fill_gradient(low = "blue", high = "white") +
+# scale_x_discrete(guide = guide_axis(angle = 90))
+```
+
