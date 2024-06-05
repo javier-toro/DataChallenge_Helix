@@ -1,11 +1,10 @@
 ---
-title: "Rapport"
+title: "Rapport EI Exposome"
 author: "Groupe 5"
 date: "`r Sys.Date()`"
 output: pdf_document
 ---
 
-## Détection des covariantes principales influant le modèle
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 # Load data
@@ -24,8 +23,12 @@ library(reshape2)
 library(RColorBrewer)
 ```
 
+# Détection des covariantes principales influant le modèle
+Dans un premier pas, on s'est concentré sur les valeurs numériques de l'exposome.
 
-```{r covariants, echo=FALSE, out.width="50%"}
+Ceci a été fait pour pouvoir effectuer une analyse de composantes principales sur les données obtenues et identifier les covariantes influant les différentes expositions pour savoir desquels il faut faire attention dans las analyses suivants.
+
+```{r covariants, echo=FALSE, out.width="30%"}
 # Split data so we only have numerical columns
 exposome_num <- exposome %>% select_if(is.numeric)
 exposome_factors <- exposome %>% select_if(is.factor)
@@ -47,20 +50,19 @@ for (covariate in covariate_names) {
 
 # Show that the cohorts are not created at the same time because
 # year of birth is linked to cohort
-table(covariates$h_cohort, covariates$e3_yearbir_None)
+pheatmap(table(covariates$h_cohort, covariates$e3_yearbir_None),
+         cluster_rows = FALSE,
+         cluster_cols = FALSE,
+         color = colorRampPalette(c("white", "orange"))(50),
+         main = "Cohorts and year of birth")
+
 ```
-Un classement des bases de données d’expositions a été fait en se basant sur deux critères :  
 
-- Les types de données : quantitative (numériques) ou qualitative (facteurs) 
-- Les données liées à la grossesse (prénatales) les données postnatales. 
+Dans l’analyse des composantes principales on peut trouver des fortes corrélations liées à la variable h_cohort qui représente le pays auquel les données ont été collectées et au e3_yearbir_None qui représente l’année de naissance des enfants. Quand-meme, pour la suite du projet, nous ne prendrons en compte que la variable h_cohort. Apparement, les cohortes ne sont pas créées en même temps car l'année de naissance est liée visiblement à la cohorte (chaque cohorte a certaines années de naissance spécifiques).
 
-Ceci a été fait pour pouvoir effectuer une analyse de composantes principales sur les différentes sous bases de données obtenues et identifier les covariantes influant les différentes expositions.
-
-Dans l’analyse des composantes principales on peut trouver des fortes corrélations liées au la variable h_cohort qui représente le pays auquel les données ont été collectées et au e3_yearbir_None qui représente l’année de naissance. Pour la suite du projet, nous ne prendrons en compte que la variable h_cohort parce qu'ils sont liés l'un à l'autre.
-
-## Matrice de “corrélations” (p_values) entre les expositions et les différents phénotypes
+# Matrice de “corrélations” (p_values) entre les expositions et les différents phénotypes
 ```{r p_values, echo=FALSE}
-codebook = as.data.frame(read_xlsx("data/codebook.xlsx"))
+codebook = as.data.frame(read_xlsx("data/codebook.xlsx",.name_repair = "unique_quiet"))
 exposome_num = exposome[ , codebook$variable_name[1:222][which(codebook$var_type[1:222] == "numeric")]]
 exposome_fac = exposome[ , codebook$variable_name[1:222][which(codebook$var_type[1:222] == "factor")]]
 
@@ -131,7 +133,10 @@ rownames(significant_values) <- rownames(annotations[annotations$hs_Gen_Tot == "
 colnames(significant_values) <- "hs_Gen_tot"
 
 significant_values[, ncol(significant_values) + 1] <- codebook$family[1:222][which(codebook$variable_name %in% rownames(significant_values))]
+
+# Print out significant values and their families
+print(significant_values)
 ```
 Les facteurs de confusions étant finalement déterminés, et pour mieux identifier les relations entre les différentes expositions et les phénotypes, une matrice contenant les p-values de la régression linéaire généralisé (glm) entre chaque exposome et chaque phénotype a été calculé. Ceci a été effectué sur les deux sous bases de données (numérique pendant la grossesse et numérique postnatale) .  Grâce à ceci, on a pu décider le phénotype d’intérêt sur lequel on allait travailler (Développement neuronal chez l’enfant h_Gen_Tot) et les familles d’expositions considérées selon les valeurs de p values les plus petites présentes dans la matrice.  
 
-Les familles d’exposition qui vont être considérés sont : Organochlorines, Air pollution, Phthalates, Lifestyle and PFAS 
+Les familles d’exposition qui vont être considérés sont : Organochlorines, Air pollution, Phthalates, Lifestyle and PFAS.
