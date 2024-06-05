@@ -1,5 +1,5 @@
 ---
-title: "Analysis of Cvariant Data influeces"
+title: "Analysis of Covariant Data influeces"
 author: "Us"
 date: "2024-06-03"
 output: pdf_document
@@ -7,9 +7,6 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r code}
 # Load necessary libraries
 library(tidyverse)
 library(ggplot2)
@@ -19,7 +16,9 @@ library(dplyr)
 library(pheatmap)
 library(factoextra)
 library(FactoMineR)
+```
 
+```{r code}
 # Split data so we only have numerical columns
 exposome_num <- exposome %>% select_if(is.numeric)
 exposome_factors <- exposome %>% select_if(is.factor)
