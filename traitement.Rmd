@@ -37,24 +37,21 @@ fit_num = prcomp(exposome_num, scale = TRUE)
 
 
 ```{r}
-pvalues_mat <- matrix( , nrow=dim(exposome_num)[2], ncol=2)
-
-j = 1
-for (expo in colnames(exposome_num)) {
-  glm = glm(phenotype[, "hs_correct_raven"] ~ cohort + exposome_num[, expo], family = gaussian, data = df)
-  pvalues_mat[j, 1] <- tail(summary(glm)$coefficient, n=1)[4]
-  j = j + 1
-}
+pvalues_mat <- matrix( , nrow=dim(exposome_num)[2], ncol=1)
 
 j = 1
 for (expo in colnames(exposome_num)) {
   glm = glm(phenotype[, "hs_Gen_Tot"] ~ cohort + exposome_num[, expo], family = gaussian, data = df)
-  pvalues_mat[j, 2] <- tail(summary(glm)$coefficient, n=1)[4]
+  pvalues_mat[j, 1] <- tail(summary(glm)$coefficient, n=1)[4]
   j = j + 1
 }
 
-colnames(pvalues_mat) <- c("hs_correct_raven", "hs_Gen_Tot")
+colnames(pvalues_mat) <- c("hs_Gen_Tot")
 rownames(pvalues_mat) <- colnames(exposome_num)
+
+pvalues_mat_ajuste <- as.data.frame(p.adjust(pvalues_mat, "fdr"))
+colnames(pvalues_mat_ajuste) <- c("hs_Gen_Tot")
+rownames(pvalues_mat_ajuste) <- colnames(exposome_num)
 
 ```
 
@@ -93,7 +90,7 @@ On essaie cette fois de repérer les p-values inférieures à 0,05
 
 ```{r}
 
-neg_log_p_values = -log10(pvalues_mat)
+neg_log_p_values = -log10(pvalues_mat_ajuste)
 threshold <- -log10(0.05)
 annotations <- as.data.frame(ifelse(neg_log_p_values >= threshold, "Significant", "Non-Significant"))
 rownames(annotations) <- rownames(neg_log_p_values)
@@ -108,11 +105,10 @@ pheatmap(
   main              = "Exposomes' correlation to phenotypes"
 )
 
-significant_values = as.data.frame(annotations[annotations$hs_Gen_Tot == "Significant", "hs_Gen_Tot"])
-rownames(significant_values) <- rownames(annotations[annotations$hs_Gen_Tot == "Significant", ])
-colnames(significant_values) <- "hs_Gen_tot"
+significant_values = cbind(pvalues_mat, pvalues_mat_ajuste, codebook$family[1:222][which(codebook$variable_name %in% rownames(pvalues_mat))])[annotations$hs_Gen_Tot == "Significant", ]
+rownames(significant_values) <- rownames(annotations)[which(annotations$hs_Gen_Tot == "Significant")]
+colnames(significant_values) <- c("pvalue", "Adjusted pvalue", "Family")
 
-significant_values[, ncol(significant_values) + 1] <- codebook$family[1:222][which(codebook$variable_name %in% rownames(significant_values))]
 ```
 
 
