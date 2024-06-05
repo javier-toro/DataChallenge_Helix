@@ -112,6 +112,7 @@ significant_values = as.data.frame(annotations[annotations$hs_Gen_Tot == "Signif
 rownames(significant_values) <- rownames(annotations[annotations$hs_Gen_Tot == "Significant", ])
 colnames(significant_values) <- "hs_Gen_tot"
 
+significant_values[, ncol(significant_values) + 1] <- codebook$family[1:222][which(codebook$variable_name %in% rownames(significant_values))]
 ```
 
 
