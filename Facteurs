@@ -1,0 +1,73 @@
+#Trier les facteurs
+exp_fact= exposome %>%
+  select(where(~is.factor(.)))
+print(exp_fact)
+
+#tranformation des facteurs en données numeriques pour les traiter
+exp_fact_transf= matrix(data= NA, nrow = nrow(exp_fact), ncol = ncol(exp_fact))
+
+i=1
+for (factos in colnames(exp_fact)){
+  exp_fact_transf[,i]= as.numeric(exp_fact[[factos]])
+  i=i+1
+}
+colnames(exp_fact_transf) <- colnames(exp_fact)
+
+# Assuming exp_fact_transf, covariates, and phenotype are already defined
+df1 = data.frame(exp_fact_transf, 
+                 cohort = covariates$h_cohort,
+                 phenotype[, -1])
+
+fit_fact = prcomp(exp_fact_transf, scale = TRUE)
+
+# Initialize the p-values matrix
+pvalues_mat <- matrix(NA, nrow = dim(exp_fact_transf)[2], ncol = ncol(phenotype[, 2:6]))
+
+
+i = 1
+for (pheno in colnames(phenotype[, 2:6])) {
+  j = 1
+  if (all(phenotype[, pheno] %in% 0:1)) {
+    for (expo in colnames(exp_fact_transf)) {
+      glm_model = glm(phenotype[, pheno] ~ cohort + exp_fact_transf[, expo], data = df1)
+      pvalues_mat[j, i] <- tail(summary(glm_model)$coefficient, n = 1)[4]
+      print(tail(summary(glm_model)$coefficient, n = 1)[4])
+      j = j + 1
+    }
+  } else {
+    for (expo in colnames(exp_fact_transf)) {
+      glm_model = glm(phenotype[, pheno] ~ cohort + exp_fact_transf[, expo], family = gaussian, data = df1)
+      pvalues_mat[j, i] <- tail(summary(glm_model)$coefficient, n = 1)[4]
+      print(pvalues_mat[j, i] <- tail(summary(glm_model)$coefficient, n = 1)[4])
+      j = j + 1
+    }
+  }
+  i = i + 1
+}
+
+pvalues_fact <- as.data.frame(pvalues_mat)
+
+# Set column and row names for pvalues_fact
+colnames(pvalues_fact) <- colnames(phenotype[, 2:6])
+rownames(pvalues_fact) <- colnames(exp_fact_transf)
+
+# Prepare annotation data frame
+mat_row = data.frame(family = codebook$family[1:222][which(codebook$variable_name[1:222] %in% rownames(pvalues_fact))])
+#rownames(mat_row) = rownames(pvalues_fact)
+
+# Prepare colors for the annotation
+unique_families <- unique(mat_row$family)
+mat_colors <- list(family = colorRampPalette(brewer.pal(8, "Set2"))(length(unique_families)))
+names(mat_colors$family) <- unique_families
+
+# Create the heatmap
+pheatmap(
+  mat = pvalues_fact,
+  color = colorRampPalette(c("#000091", "white", "#E1000F"))(50),
+  annotation_row = mat_row,
+  annotation_colors = mat_colors,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  fontsize = 10,
+  main = "Exposomes' correlation to phenotypes"
+)
