@@ -42,4 +42,5 @@ for (covariate in covariate_names) {
 # year of birth is linked to cohort
 table(covariates$h_cohort, covariates$e3_yearbir_None)
 
+
 ```

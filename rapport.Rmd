@@ -140,3 +140,9 @@ print(significant_values)
 Les facteurs de confusions étant finalement déterminés, et pour mieux identifier les relations entre les différentes expositions et les phénotypes, une matrice contenant les p-values de la régression linéaire généralisé (glm) entre chaque exposome et chaque phénotype a été calculé. Ceci a été effectué sur les deux sous bases de données (numérique pendant la grossesse et numérique postnatale) .  Grâce à ceci, on a pu décider le phénotype d’intérêt sur lequel on allait travailler (Développement neuronal chez l’enfant h_Gen_Tot) et les familles d’expositions considérées selon les valeurs de p values les plus petites présentes dans la matrice.  
 
 Les familles d’exposition qui vont être considérés sont : Organochlorines, Air pollution, Phthalates, Lifestyle and PFAS.
+
+# Analyse des Exposomes de type Facteur
+
+# Analyse de l'effet des exposomes sur les phénotypes
+
+# Prédiction: Methode LASSO
