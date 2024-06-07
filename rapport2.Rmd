@@ -29,6 +29,7 @@ library(FactoMineR)
 library(readxl)
 library(reshape2)
 library(RColorBrewer)
+library(glmnet)
 ```
 
 #Description des données
@@ -75,83 +76,6 @@ pheatmap(table(covariates$h_cohort, covariates$e3_yearbir_None),
 
 Dans l’analyse des composantes principales on peut trouver des fortes corrélations liées à la variable h_cohort qui représente le pays auquel les données ont été collectées et au e3_yearbir_None qui représente l’année de naissance des enfants. Quand-meme, pour la suite du projet, nous ne prendrons en compte que la variable h_cohort. Apparement, les cohortes ne sont pas créées en même temps car l'année de naissance est liée visiblement à la cohorte (chaque cohorte a certaines années de naissance spécifiques).
 
-# Matrice de “corrélations” (p_values) entre les expositions et les différents phénotypes
-```{r p_values, echo=FALSE}
-codebook = as.data.frame(read_xlsx("data/codebook.xlsx",.name_repair = "unique_quiet"))
-exposome_num = exposome[ , codebook$variable_name[1:222][which(codebook$var_type[1:222] == "numeric")]]
-exposome_fac = exposome[ , codebook$variable_name[1:222][which(codebook$var_type[1:222] == "factor")]]
-
-df = data.frame(exposome_num, 
-                cohort = covariates$h_cohort,
-                phenotype[, -1])
-
-fit_num = prcomp(exposome_num, scale = TRUE)
-
-pvalues_mat <- matrix( , nrow=dim(exposome_num)[2], ncol=2)
-
-j = 1
-for (expo in colnames(exposome_num)) {
-  glm = glm(phenotype[, "hs_correct_raven"] ~ cohort + exposome_num[, expo], family = gaussian, data = df)
-  pvalues_mat[j, 1] <- tail(summary(glm)$coefficient, n=1)[4]
-  j = j + 1
-}
-
-j = 1
-for (expo in colnames(exposome_num)) {
-  glm = glm(phenotype[, "hs_Gen_Tot"] ~ cohort + exposome_num[, expo], family = gaussian, data = df)
-  pvalues_mat[j, 2] <- tail(summary(glm)$coefficient, n=1)[4]
-  j = j + 1
-}
-
-colnames(pvalues_mat) <- c("hs_correct_raven", "hs_Gen_Tot")
-rownames(pvalues_mat) <- colnames(exposome_num)
-
-mat_row = data.frame(family = codebook$family[1:222][which(codebook$variable_name[1:222] %in% rownames(pvalues_mat))])
-rownames(mat_row) <- rownames(pvalues_mat)
-
-mat_colors <- list(family = colorRampPalette(brewer.pal(8, "Set2"))(length(unique(codebook$family[1:222]))))
-names(mat_colors$family) <- unique(codebook$family[1:222])
-
-# pvalues_melt <- melt(pvalues_preg)
-# pvalues_melt$expo <- rep(rownames(pvalues_preg), 5)
-
-pheatmap(
-  mat = pvalues_mat,
-  color = colorRampPalette(c("#000091", "white", "#E1000F"))(50),
-  annotation_row = mat_row,
-  annotation_colors = mat_colors,
-  cluster_rows = FALSE,
-  cluster_cols = FALSE,
-  fontsize          = 4,
-  main              = "Exposomes' correlation to phenotypes",
-  legend = FALSE
-)
-
-
-neg_log_p_values = -log10(pvalues_mat)
-threshold <- -log10(0.05)
-annotations <- as.data.frame(ifelse(neg_log_p_values >= threshold, "Significant", "Non-Significant"))
-rownames(annotations) <- rownames(neg_log_p_values)
-colnames(annotations) <- colnames(neg_log_p_values)
-
-pheatmap(
-  mat = neg_log_p_values,
-  cluster_rows = FALSE,
-  cluster_cols = FALSE,
-  annotation_row = annotations,
-  fontsize          = 5,
-  main              = "Exposomes' correlation to phenotypes"
-)
-
-significant_values = as.data.frame(annotations[annotations$hs_Gen_Tot == "Significant", "hs_Gen_Tot"])
-rownames(significant_values) <- rownames(annotations[annotations$hs_Gen_Tot == "Significant", ])
-colnames(significant_values) <- "hs_Gen_tot"
-
-significant_values[, ncol(significant_values) + 1] <- codebook$family[1:222][which(codebook$variable_name %in% rownames(significant_values))]
-
-# Print out significant values and their families
-print(significant_values)
-```
 
 Les facteurs de confusions étant finalement déterminés, et pour mieux identifier les relations entre les différentes expositions et les phénotypes, une matrice contenant les p-values de la régression linéaire généralisé (glm) entre chaque exposome et chaque phénotype a été calculé. Ceci a été effectué sur les deux sous bases de données (numérique pendant la grossesse et numérique postnatale) .  Grâce à ceci, on a pu décider le phénotype d’intérêt sur lequel on allait travailler (Développement neuronal chez l’enfant h_Gen_Tot) et les familles d’expositions considérées selon les valeurs de p values les plus petites présentes dans la matrice.  
 
@@ -214,9 +138,12 @@ pvalues_fact <- as.data.frame(pvalues_mat)
 colnames(pvalues_fact) <- colnames(phenotype[, 2:6])
 rownames(pvalues_fact) <- colnames(exp_fact_transf)
 
+# Adjust pvalues
+pvalues_fact_adj <- as.data.frame(p.adjust(pvalues_fact[, "hs_Gen_Tot"], "fdr"))
+
 # Prepare annotation data frame
 mat_row = data.frame(family = codebook$family[1:222][which(codebook$variable_name[1:222] %in% rownames(pvalues_fact))])
-#rownames(mat_row) = rownames(pvalues_fact)
+rownames(mat_row) <- rownames(pvalues_fact)
 
 # Prepare colors for the annotation
 unique_families <- unique(mat_row$family)
@@ -234,12 +161,127 @@ pheatmap(
   fontsize = 10,
   main = "Exposomes' correlation to phenotypes"
 )
+
+neg_log_p_values = -log10(pvalues_fact_adj)
+threshold <- -log10(0.05)
+annotations <- as.data.frame(ifelse(neg_log_p_values >= threshold, "Significant", "Non-Significant"))
+rownames(annotations) <- rownames(neg_log_p_values)
+colnames(annotations) <- colnames(neg_log_p_values)
+
+significant_values_fac = cbind(pvalues_fact, pvalues_fact_adj, codebook$family[1:222][which(codebook$variable_name %in% rownames(pvalues_fact))])[annotations$hs_Gen_Tot == "Significant", ]
+
 ```
 
 
-# Analyse de l'effet des exposomes sur les phénotypes
+# Matrice de “corrélations” (p_values) entre les expositions numériques et les différents phénotypes
+```{r p_values, echo=FALSE}
+
+df = data.frame(exposome_num, 
+                cohort = covariates$h_cohort,
+                phenotype[, -1])
+
+fit_num = prcomp(exposome_num, scale = TRUE)
+
+pvalues_mat <- matrix( , nrow=dim(exposome_num)[2], ncol=1)
+
+j = 1
+for (expo in colnames(exposome_num)) {
+  glm = glm(phenotype[, "hs_Gen_Tot"] ~ cohort + exposome_num[, expo], family = gaussian, data = df)
+  pvalues_mat[j, 1] <- tail(summary(glm)$coefficient, n=1)[4]
+  j = j + 1
+}
+
+colnames(pvalues_mat) <- c("hs_Gen_Tot")
+rownames(pvalues_mat) <- colnames(exposome_num)
+
+pvalues_mat_ajuste <- as.data.frame(p.adjust(pvalues_mat, "fdr"))
+colnames(pvalues_mat_ajuste) <- c("hs_Gen_Tot")
+rownames(pvalues_mat_ajuste) <- colnames(exposome_num)
+
+mat_row = data.frame(family = codebook$family[1:222][which(codebook$variable_name[1:222] %in% rownames(pvalues_mat))])
+rownames(mat_row) <- rownames(pvalues_mat)
+
+mat_colors <- list(family = colorRampPalette(brewer.pal(8, "Set2"))(length(unique(codebook$family[1:222]))))
+names(mat_colors$family) <- unique(codebook$family[1:222])
+
+pheatmap(
+  mat = pvalues_mat,
+  color = colorRampPalette(c("#000091", "white", "#E1000F"))(50),
+  annotation_row = mat_row,
+  annotation_colors = mat_colors,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  fontsize          = 4,
+  main              = "Exposomes' correlation to phenotypes",
+  legend = FALSE
+)
+
+neg_log_p_values = -log10(pvalues_mat_ajuste)
+threshold <- -log10(0.05)
+annotations <- as.data.frame(ifelse(neg_log_p_values >= threshold, "Significant", "Non-Significant"))
+rownames(annotations) <- rownames(neg_log_p_values)
+colnames(annotations) <- colnames(neg_log_p_values)
+
+pheatmap(
+  mat = neg_log_p_values,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  annotation_row = annotations,
+  fontsize          = 5,
+  main              = "Exposomes' correlation to phenotypes (log scale)"
+)
+
+significant_values_num = cbind(pvalues_mat, pvalues_mat_ajuste, codebook$family[1:222][which(codebook$variable_name %in% rownames(pvalues_mat))])[annotations$hs_Gen_Tot == "Significant", ]
+rownames(significant_values_num) <- rownames(annotations)[which(annotations$hs_Gen_Tot == "Significant")]
+colnames(significant_values_num) <- c("pvalue", "Adjusted pvalue", "Family")
+```
 
 # Prédiction: Methode LASSO
+
+```{r}
+chosen_pheno = "hs_Gen_Tot"
+```
+
+On prépare le modèle LASSO
+
+```{r}
+encodage_cohort <- matrix(0, nrow=dim(exposome)[1], ncol=length(unique(covariates$h_cohort)))
+for (i in 1:nrow(encodage_cohort)) {
+  encodage_cohort[i, covariates$h_cohort[i]] <- 1
+}
+
+x <- as.matrix(cbind(exposome_num[, rownames(significant_values)], encodage_cohort))
+y <- phenotype[, chosen_pheno]
+penalty = rep(1, dim(x)[2] - 4)
+for (i in 1:4) {
+  penalty[dim(x)[2] - 4 + i] = 0
+}
+
+cv.lasso <- cv.glmnet(x, y, family="gaussian", alpha=1, penalty.factor = penalty)
+
+```
+
+```{r}
+optimal_lambda <- cv.lasso$lambda.min
+cat("Optimal lambda:", optimal_lambda, "\n")
+
+# Extract coefficients at the optimal lambda
+lasso_coefficients <- coef(cv.lasso, s = "lambda.min")
+print(lasso_coefficients)
+
+# Predict using the lasso model
+predictions <- predict(cv.lasso, s = "lambda.min", newx = x)
+
+# Print the predictions
+# print(predictions)
+
+cor(y, predictions)
+
+# # Plot Predicted vs. Actual values
+plot(y, predictions, xlab = "Actual Values", ylab = "Predicted Values",
+     main = "Actual vs. Predicted Values")
+abline(0, 1, col = "red")  # Add a diagonal line for reference
+```
 
 
 #Conclusion

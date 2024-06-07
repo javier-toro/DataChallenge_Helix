@@ -1,0 +1,51 @@
+```{r, message=FALSE}
+library(glmnet)
+```
+
+Some global variables
+
+```{r}
+chosen_pheno = "hs_Gen_Tot"
+```
+
+On prépare le modèle LASSO
+
+```{r}
+encodage_cohort <- matrix(0, nrow=dim(exposome)[1], ncol=length(unique(covariates$h_cohort)))
+for (i in 1:nrow(encodage_cohort)) {
+  encodage_cohort[i, covariates$h_cohort[i]] <- 1
+}
+
+x <- as.matrix(cbind(exposome_num[, rownames(significant_values)], encodage_cohort))
+y <- phenotype[, chosen_pheno]
+penalty = rep(1, dim(x)[2] - 4)
+for (i in 1:4) {
+  penalty[dim(x)[2] - 4 + i] = 0
+}
+
+cv.lasso <- cv.glmnet(x, y, family="gaussian", alpha=1, penalty.factor = penalty)
+
+```
+
+```{r}
+optimal_lambda <- cv.lasso$lambda.min
+cat("Optimal lambda:", optimal_lambda, "\n")
+
+# Extract coefficients at the optimal lambda
+lasso_coefficients <- coef(cv.lasso, s = "lambda.min")
+print(lasso_coefficients)
+
+# Predict using the lasso model
+predictions <- predict(cv.lasso, s = "lambda.min", newx = x)
+
+# Print the predictions
+# print(predictions)
+
+cor(y, predictions)
+
+# # Plot Predicted vs. Actual values
+plot(y, predictions, xlab = "Actual Values", ylab = "Predicted Values",
+     main = "Actual vs. Predicted Values")
+abline(0, 1, col = "red")  # Add a diagonal line for reference
+```
+

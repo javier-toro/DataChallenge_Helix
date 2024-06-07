@@ -45,7 +45,9 @@ for (expo in colnames(exposome_num)) {
   pvalues_mat[j, 1] <- tail(summary(glm)$coefficient, n=1)[4]
   j = j + 1
 }
+```
 
+```{r}
 colnames(pvalues_mat) <- c("hs_Gen_Tot")
 rownames(pvalues_mat) <- colnames(exposome_num)
 
