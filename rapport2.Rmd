@@ -178,27 +178,27 @@ significant_values_fac = cbind(pvalues_fact, pvalues_fact_adj, codebook$family[1
 # Matrice de “corrélations” (p_values) entre les expositions numériques et les différents phénotypes
 ```{r p_values, echo=FALSE}
 
-df = data.frame(exposome_num, 
+df = data.frame(exposome_num[, -1], 
                 cohort = covariates$h_cohort,
                 phenotype[, -1])
 
-fit_num = prcomp(exposome_num, scale = TRUE)
+fit_num = prcomp(exposome_num[, -1], scale = TRUE)
 
-pvalues_mat <- matrix( , nrow=dim(exposome_num)[2], ncol=1)
+pvalues_mat <- matrix( , nrow=dim(exposome_num[, -1])[2], ncol=1)
 
 j = 1
-for (expo in colnames(exposome_num)) {
+for (expo in colnames(exposome_num[, -1])) {
   glm = glm(phenotype[, "hs_Gen_Tot"] ~ cohort + exposome_num[, expo], family = gaussian, data = df)
   pvalues_mat[j, 1] <- tail(summary(glm)$coefficient, n=1)[4]
   j = j + 1
 }
 
 colnames(pvalues_mat) <- c("hs_Gen_Tot")
-rownames(pvalues_mat) <- colnames(exposome_num)
+rownames(pvalues_mat) <- colnames(exposome_num[, -1])
 
 pvalues_mat_ajuste <- as.data.frame(p.adjust(pvalues_mat, "fdr"))
 colnames(pvalues_mat_ajuste) <- c("hs_Gen_Tot")
-rownames(pvalues_mat_ajuste) <- colnames(exposome_num)
+rownames(pvalues_mat_ajuste) <- colnames(exposome_num[, -1])
 
 mat_row = data.frame(family = codebook$family[1:222][which(codebook$variable_name[1:222] %in% rownames(pvalues_mat))])
 rownames(mat_row) <- rownames(pvalues_mat)
@@ -266,10 +266,10 @@ phenotypes <- c(2.118151e-04, 2.893412e-05, 6.272963e-05, 2.527486e-04, 8.210421
                 4.560030e-06, 2.103626e-06, 7.310518e-05, 1.634249e-07, 9.014152e-06, 
                 1.843719e-06, 2.073546e-04, 5.936854e-04)
 # Transform the vector in data frame
-df <- data.frame(Phénotype = rownames(p_values_mat), Valeur = phenotypes)
-df <- df[order(df$Valeur, decreasing = TRUE), ]
+df2 <- data.frame(Phénotype = rownames(p_values_mat), Valeur = phenotypes)
+df2 <- df2[order(df2$Valeur, decreasing = TRUE), ]
 #Barplot
-ggplot(df, aes(x = reorder(Phénotype, Valeur), y = Valeur)) +
+ggplot(df2, aes(x = reorder(Phénotype, Valeur), y = Valeur)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   coord_flip() +
   theme_minimal() +
@@ -303,7 +303,7 @@ for (i in 1:nrow(encodage_cohort)) {
   encodage_cohort[i, covariates$h_cohort[i]] <- 1
 }
 
-x <- as.matrix(cbind(exposome_num[, rownames(significant_values)], encodage_cohort))
+x <- as.matrix(cbind(exposome_num[, rownames(significant_values_num)], encodage_cohort))
 y <- phenotype[, chosen_pheno]
 penalty = rep(1, dim(x)[2] - 4)
 for (i in 1:4) {
