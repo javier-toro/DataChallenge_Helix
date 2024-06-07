@@ -83,6 +83,8 @@ Les familles d’exposition qui vont être considérés sont : Organochlorines, 
 
 # Analyse des Exposomes de type Facteur
 
+On prend maintenant les exposomes qualitatives pour analyser leur impact sur le phenotype choisi, hs_Gen-Tot. Pour ce faire, nous transformons les facteurs en données numériques pour les traiter en obtenant leur pvalue dans le modèle linéaire generalisé. On ajuste les pvalues calculés et on les represant sur un heatmap. Puis, pour pouvoir identifier si elles sont pertinentes ou non pour notre phénotype, on utilise le logarithme des valeurs. On constate qu'il n'y a pas de facteurs sgnificatifs dans le comportement neuronal.C'est pour cette raison que le reste de l'analyse ne portera que les données numériques.
+
 ```{r}
 #Trier les facteurs
 exp_fact= exposome %>%
