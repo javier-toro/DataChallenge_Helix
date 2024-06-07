@@ -236,6 +236,57 @@ rownames(significant_values_num) <- rownames(annotations)[which(annotations$hs_G
 colnames(significant_values_num) <- c("pvalue", "Adjusted pvalue", "Family")
 ```
 
+# Analyse univarié: Effet des expositions sur le phénotype d'intérêt
+
+```{r p_values_mat, echo=FALSE}
+
+# Extraire les exposomes numériques 
+exposome_num=exposome[,as.character(codebook$variable_name[2:222][which(codebook$var_type[2:222]=="numeric")])]
+# Extraire la famille organochlorines 
+organochlorine_df=exposome_num[,as.character(codebook$variable_name[2:166][which(codebook$family=="Organochlorines")])]
+#Initialisation du vecteur 
+p_values_mat=matrix(,nrow=dim(organochlorine_df)[2],ncol=1)
+colnames(p_values_mat) <- c("Phénotype")
+rownames(p_values_mat) <- colnames(organochlorine_df)
+#Générer toutes  les p_values de cette famille pour le vecteur 
+j=1
+for (expo in colnames(organochlorine_df)){
+  glm=glm(phenotype[,"hs_Gen_Tot"]~ covariates$h_cohort+exposome_num[,expo], family=gaussian, data=df)
+  p_value=summary(glm)$coefficients[2,"Pr(>|t|)"]
+  p_values_mat[j,1]=p_value
+  j=j+1
+}
+#Output la matrice 
+print(p_values_mat)
+#Barplot pour identification des p values les plus significatives ( les plus petites ) -> Grande présence des pcb 
+phenotypes <- c(2.118151e-04, 2.893412e-05, 6.272963e-05, 2.527486e-04, 8.210421e-05, 
+                4.506637e-05, 4.520601e-03, 7.189372e-06, 6.506100e-07, 4.714486e-06, 
+                4.560030e-06, 2.103626e-06, 7.310518e-05, 1.634249e-07, 9.014152e-06, 
+                1.843719e-06, 2.073546e-04, 5.936854e-04)
+# Transform the vector in data frame
+df <- data.frame(Phénotype = rownames(p_values_mat), Valeur = phenotypes)
+df <- df[order(df$Valeur, decreasing = TRUE), ]
+#Barplot
+ggplot(df, aes(x = reorder(Phénotype, Valeur), y = Valeur)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Valeurs des phénotypes", x = "Phénotype", y = "Valeur") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+#Relation entre le taux de pcb présents dans la cohorte et l'indice Gen_Tot en comparant les deux graphes 
+#Boxplot pour le taux de pcb consommé par la mère selon le pays 
+ggplot(df, aes(x=covariates$h_cohort, y=hs_pcb170_madj_Log2, fill=cohort))+geom_boxplot()+labs(title="Influence de la cohorte sur le taux de pcb émis ", 
+                                                                                      x="Cohorte",
+                                                                                      y="hs_pcb170_madj_Log2")+ theme_minimal()+theme(legend.position = "none")                                                                                                             #Boxplot pour l'indice comportemental selon le pays                                                                           
+ggplot(df, aes(x=covariates$h_cohort, y=hs_Gen_Tot, fill=cohort))+geom_boxplot()+labs(title="Influence de la cohorte sur le développement neuronal", 
+            x="Cohorte",
+            y="hs_Gen_Tot")+ theme_minimal()+theme(legend.position = "none") 
+``` 
+Pour mieux étudier les influences des uniques expositions dans la famille organochlorines sur le phénotype de développement neuronal, on a identifié les exposomes les plus significatifs selon leur p-value dans cette famille à partir d’une régression linéaire généralisée. L’influence significative du taux de polychlorinated biphenyl  PCB (138 et 170 ) a été remarqué, ceux ci étant des composés chimiques utilisés dans diverses applications industrielles et commerciales et dont les études ont montré leur nocivité sur la santé de l’être humain. D’où l’intérêt d’étudier l’influence de la cohorte sur le taux du pcb consommé par la maman et l’enfant est survenu, vu qu’il y a des pays plus industrielles que d’autres.
+Effectivement le taux de gen_tot le plus bas ( développment neuronal retardé) a été remarqué dans les pays avec le taux de pcb le plus élevé. Ceci a été remarqué dans le cas où ca soit la mère qui a consommé ces produits mais pas vraiment dans le cas où ca soit l’enfant qui l’a consommé. 
+
+
+
 # Prédiction: Methode LASSO
 
 ```{r}
