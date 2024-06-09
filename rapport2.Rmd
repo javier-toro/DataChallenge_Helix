@@ -3,10 +3,11 @@ title: "Rapport EI Exposome"
 author: "Groupe 5"
 date: "`r Sys.Date()`"
 output: pdf_document
+classoption: a4paper
 ---
 
 
-#Introduction
+# Introduction
 
 La phrase du philosophe José Ortega y Gasset : « Je suis moi et mes circonstances », n'est pas loin de ce que la science a prouvé par la suite : nous sommes le résultat de notre génome et de nos interactions avec notre environnement. C'est pourquoi le développement de l'être humain pendant l'enfance peut être fortement altéré par de nombreux facteurs, depuis l'alimentation, le tabagisme et la pollution pendant la période de grosses jusqu'à l'activité physique de l'enfant.
 
@@ -32,7 +33,7 @@ library(RColorBrewer)
 library(glmnet)
 ```
 
-#Description des données
+# Description des données
 
 The projet Athlete nous a fourni avec les données de 1301 personnes collectés dans 6 pays différentes: France, Espagne, Grèce, Royaume-Uni, Norvège et Lituanie.
 
@@ -42,7 +43,7 @@ Les donnés ont été collectées de trois manières différentes, par questionn
 # Détection des covariantes principales influant le modèle
 Dans un premier pas, on s'est concentré sur les valeurs numériques de l'exposome.
 
-Ceci a été fait pour pouvoir effectuer une analyse de composantes principales sur les données obtenues et identifier les covariantes influant les différentes expositions pour savoir desquels il faut faire attention dans las analyses suivants.
+Ceci a été fait pour pouvoir effectuer une analyse de composantes principales sur les données obtenues et identifier les "covariates" influant sur les différentes expositions afin de déterminer lesquelles sont à prendre en compte les analyses suivantes.
 
 ```{r covariants, echo=FALSE, out.width="30%"}
 # Split data so we only have numerical columns
@@ -74,23 +75,18 @@ pheatmap(table(covariates$h_cohort, covariates$e3_yearbir_None),
 
 ```
 
-Dans l’analyse des composantes principales on peut trouver des fortes corrélations liées à la variable h_cohort qui représente le pays auquel les données ont été collectées et au e3_yearbir_None qui représente l’année de naissance des enfants. Quand-meme, pour la suite du projet, nous ne prendrons en compte que la variable h_cohort. Apparement, les cohortes ne sont pas créées en même temps car l'année de naissance est liée visiblement à la cohorte (chaque cohorte a certaines années de naissance spécifiques).
-
-
-Les facteurs de confusions étant finalement déterminés, et pour mieux identifier les relations entre les différentes expositions et les phénotypes, une matrice contenant les p-values de la régression linéaire généralisé (glm) entre chaque exposome et chaque phénotype a été calculé. Ceci a été effectué sur les deux sous bases de données (numérique pendant la grossesse et numérique postnatale) .  Grâce à ceci, on a pu décider le phénotype d’intérêt sur lequel on allait travailler (Développement neuronal chez l’enfant h_Gen_Tot) et les familles d’expositions considérées selon les valeurs de p values les plus petites présentes dans la matrice.  
+L'analyse en composantes principales nous permet d'identifier une forte corrélation avec la variable h_cohort, qui représente le pays dans lequel les données ont été collectées et à e3_yearbir_None qui représente l’année de naissance des enfants. Dans la suite du projet, nous ne prendrons en compte que la variable h_cohort. En effet, il semblerait que les cohortes ne soient pas créées en même temps car l'année de naissance est visiblement liée à la cohorte (chaque cohorte correspond à certaines années de naissance).
 
 Les familles d’exposition qui vont être considérés sont : Organochlorines, Air pollution, Phthalates, Lifestyle and PFAS.
 
 # Analyse des Exposomes de type Facteur
 
-On prend maintenant les exposomes qualitatives pour analyser leur impact sur le phenotype choisi, hs_Gen-Tot. Pour ce faire, nous transformons les facteurs en données numériques pour les traiter en obtenant leur pvalue dans le modèle linéaire generalisé. On ajuste les pvalues calculés et on les represant sur un heatmap. Puis, pour pouvoir identifier si elles sont pertinentes ou non pour notre phénotype, on utilise le logarithme des valeurs. On constate qu'il n'y a pas de facteurs sgnificatifs dans le comportement neuronal.C'est pour cette raison que le reste de l'analyse ne portera que les données numériques.
+On prend maintenant les exposomes qualitatifs pour analyser leur impact sur le phénotype choisi, hs_Gen-Tot. Pour ce faire, nous transformons les facteurs en données numériques pour les traiter en obtenant leur p-value dans le modèle linéaire généralisé. On ajuste les p-values calculés et on les représentent sur une heatmap. Puis, pour pouvoir identifier si elles sont pertinentes ou non pour notre phénotype, on utilise le logarithme des valeurs. On constate qu'il n'y a pas de facteurs significatifs dans le comportement neuronal. C'est pour cette raison que le reste de l'analyse ne portera que sur les données numériques.
 
-```{r}
+```{r, echo=FALSE}
 #Trier les facteurs
 exp_fact= exposome %>%
   select(where(~is.factor(.)))
-
-print(exp_fact)
 
 #tranformation des facteurs en données numeriques pour les traiter
 exp_fact_transf= matrix(data= NA, nrow = nrow(exp_fact), ncol = ncol(exp_fact))
@@ -112,7 +108,6 @@ fit_fact = prcomp(exp_fact_transf, scale = TRUE)
 # Initialize the p-values matrix
 pvalues_mat <- matrix(NA, nrow = dim(exp_fact_transf)[2], ncol = ncol(phenotype[, 2:6]))
 
-
 i = 1
 for (pheno in colnames(phenotype[, 2:6])) {
   j = 1
@@ -120,14 +115,12 @@ for (pheno in colnames(phenotype[, 2:6])) {
     for (expo in colnames(exp_fact_transf)) {
       glm_model = glm(phenotype[, pheno] ~ cohort + exp_fact_transf[, expo], data = df1)
       pvalues_mat[j, i] <- tail(summary(glm_model)$coefficient, n = 1)[4]
-      print(tail(summary(glm_model)$coefficient, n = 1)[4])
       j = j + 1
     }
   } else {
     for (expo in colnames(exp_fact_transf)) {
       glm_model = glm(phenotype[, pheno] ~ cohort + exp_fact_transf[, expo], family = gaussian, data = df1)
       pvalues_mat[j, i] <- tail(summary(glm_model)$coefficient, n = 1)[4]
-      print(pvalues_mat[j, i] <- tail(summary(glm_model)$coefficient, n = 1)[4])
       j = j + 1
     }
   }
@@ -173,7 +166,7 @@ colnames(annotations) <- colnames(neg_log_p_values)
 significant_values_fac = cbind(pvalues_fact, pvalues_fact_adj, codebook$family[1:222][which(codebook$variable_name %in% rownames(pvalues_fact))])[annotations$hs_Gen_Tot == "Significant", ]
 
 ```
-
+Nous nous intéressons ensuite aux exposomes numériques afin de déterminer lesquels sont corrélés avec l'exposome que nous avons choisi, et ont ainsi une influence non négligeable. Nous utilisons à nouveau un modèle de régression linéaire généralisé pour cela et nous étudions les p-values, que nous aurons ajustées au préalable à l'aide de la méthode "False Discovery Rate" (FDR).
 
 # Matrice de “corrélations” (p_values) entre les expositions numériques et les différents phénotypes
 ```{r p_values, echo=FALSE}
@@ -236,35 +229,35 @@ pheatmap(
 significant_values_num = cbind(pvalues_mat, pvalues_mat_ajuste, codebook$family[1:222][which(codebook$variable_name %in% rownames(pvalues_mat))])[annotations$hs_Gen_Tot == "Significant", ]
 rownames(significant_values_num) <- rownames(annotations)[which(annotations$hs_Gen_Tot == "Significant")]
 colnames(significant_values_num) <- c("pvalue", "Adjusted pvalue", "Family")
+print(significant_values_num)
 ```
+Nous modifions les p_values pour les avoir en échelle logarithmique afin de pouvoir identifier visuellement quels exposomes sont significatifs, avant d'extraire la matrice des exposomes significatifs ainsi que leur p-value.
 
 # Analyse univarié: Effet des expositions sur le phénotype d'intérêt
 
+Nous nous concentrons maintenant sur l'effet de la famille "Organochlorines" sur le phénotype choisi. 
+
 ```{r p_values_mat, echo=FALSE}
 
-# Extraire les exposomes numériques 
-exposome_num=exposome[,as.character(codebook$variable_name[2:222][which(codebook$var_type[2:222]=="numeric")])]
 # Extraire la famille organochlorines 
 organochlorine_df=exposome_num[,as.character(codebook$variable_name[2:166][which(codebook$family=="Organochlorines")])]
+
 #Initialisation du vecteur 
 p_values_mat=matrix(,nrow=dim(organochlorine_df)[2],ncol=1)
 colnames(p_values_mat) <- c("Phénotype")
 rownames(p_values_mat) <- colnames(organochlorine_df)
+
 #Générer toutes  les p_values de cette famille pour le vecteur 
 j=1
 for (expo in colnames(organochlorine_df)){
-  glm=glm(phenotype[,"hs_Gen_Tot"]~ covariates$h_cohort+exposome_num[,expo], family=gaussian, data=df)
-  p_value=summary(glm)$coefficients[2,"Pr(>|t|)"]
-  p_values_mat[j,1]=p_value
-  j=j+1
+  glm = glm(phenotype[,"hs_Gen_Tot"]~ covariates$h_cohort+exposome_num[,expo], family=gaussian, data=df)
+  p_values_mat[j,1] = summary(glm)$coefficients[2,"Pr(>|t|)"]
+  j = j + 1
 }
-#Output la matrice 
-print(p_values_mat)
+
 #Barplot pour identification des p values les plus significatives ( les plus petites ) -> Grande présence des pcb 
-phenotypes <- c(2.118151e-04, 2.893412e-05, 6.272963e-05, 2.527486e-04, 8.210421e-05, 
-                4.506637e-05, 4.520601e-03, 7.189372e-06, 6.506100e-07, 4.714486e-06, 
-                4.560030e-06, 2.103626e-06, 7.310518e-05, 1.634249e-07, 9.014152e-06, 
-                1.843719e-06, 2.073546e-04, 5.936854e-04)
+phenotypes <- as.double(p_values_mat)
+
 # Transform the vector in data frame
 df2 <- data.frame(Phénotype = rownames(p_values_mat), Valeur = phenotypes)
 df2 <- df2[order(df2$Valeur, decreasing = TRUE), ]
@@ -284,20 +277,19 @@ ggplot(df, aes(x=covariates$h_cohort, y=hs_Gen_Tot, fill=cohort))+geom_boxplot()
             x="Cohorte",
             y="hs_Gen_Tot")+ theme_minimal()+theme(legend.position = "none") 
 ``` 
-Pour mieux étudier les influences des uniques expositions dans la famille organochlorines sur le phénotype de développement neuronal, on a identifié les exposomes les plus significatifs selon leur p-value dans cette famille à partir d’une régression linéaire généralisée. L’influence significative du taux de polychlorinated biphenyl  PCB (138 et 170 ) a été remarqué, ceux ci étant des composés chimiques utilisés dans diverses applications industrielles et commerciales et dont les études ont montré leur nocivité sur la santé de l’être humain. D’où l’intérêt d’étudier l’influence de la cohorte sur le taux du pcb consommé par la maman et l’enfant est survenu, vu qu’il y a des pays plus industrielles que d’autres.
-Effectivement le taux de gen_tot le plus bas ( développment neuronal retardé) a été remarqué dans les pays avec le taux de pcb le plus élevé. Ceci a été remarqué dans le cas où ca soit la mère qui a consommé ces produits mais pas vraiment dans le cas où ca soit l’enfant qui l’a consommé. 
 
+Pour mieux étudier les influences des uniques expositions dans la famille organochlorines sur le phénotype de développement neuronal, on a identifié les exposomes les plus significatifs selon leur p-value dans cette famille à partir d’une régression linéaire généralisée. L’influence significative du taux de polychlorinated biphenyl  PCB (138 et 170 ) a été remarqué, ceux-ci étant des composés chimiques utilisés dans diverses applications industrielles et commerciales et dont les études ont montré la nocivité sur la santé de l’être humain. On se pose alors la question de l’influence de la cohorte sur le taux du pcb consommé par la mère et l’enfant, vu qu’il y a des pays plus industriels que d’autres.
+
+Effectivement le taux de gen_tot le plus bas (développment neuronal retardé) a été mesuré dans les pays avec le taux de pcb le plus élevé. Ceci a été mesuré dans le cas où ca soit la mère qui a consommé ces produits, mais leur consommation par l'enfant ne semble pas avoir d'influence significative. 
 
 
 # Prédiction: Methode LASSO
 
-```{r}
+L'objectif à présent est de proposer un modèle multi-expositions afin de tenter de mettre en évidence un lien entre les exposomes et le développement neuronal de l'enfant, tout en prenant en compte les "covariates" dont on a identifié l'effet précédemment.
+
+```{r, echo=FALSE}
 chosen_pheno = "hs_Gen_Tot"
-```
 
-On prépare le modèle LASSO
-
-```{r}
 encodage_cohort <- matrix(0, nrow=dim(exposome)[1], ncol=length(unique(covariates$h_cohort)))
 for (i in 1:nrow(encodage_cohort)) {
   encodage_cohort[i, covariates$h_cohort[i]] <- 1
@@ -312,29 +304,22 @@ for (i in 1:4) {
 
 cv.lasso <- cv.glmnet(x, y, family="gaussian", alpha=1, penalty.factor = penalty)
 
-```
-
-```{r}
 optimal_lambda <- cv.lasso$lambda.min
 cat("Optimal lambda:", optimal_lambda, "\n")
 
 # Extract coefficients at the optimal lambda
 lasso_coefficients <- coef(cv.lasso, s = "lambda.min")
-print(lasso_coefficients)
 
 # Predict using the lasso model
 predictions <- predict(cv.lasso, s = "lambda.min", newx = x)
 
-# Print the predictions
-# print(predictions)
-
-cor(y, predictions)
+cat("Corrélation : ", cor(y, predictions), "\n")
 
 # # Plot Predicted vs. Actual values
 plot(y, predictions, xlab = "Actual Values", ylab = "Predicted Values",
      main = "Actual vs. Predicted Values")
 abline(0, 1, col = "red")  # Add a diagonal line for reference
 ```
+Le modèle proposé ici n'est pas très satisfaisant, ne proposant qu'une corrélation d'environ 46%. Le graphe suivant illustre l'aspect insatisfaisant du modèle, car les valeurs prédites peuvent être très différentes des valeurs réelles.
 
-
-#Conclusion
+# Conclusion
