@@ -1,6 +1,6 @@
 ---
-title: "Rapport EI Exposome"
-author: "Groupe 5"
+title: "Rapport EI Exposome: Influence des exposomes sur le développement comportemental et neuronal de l'enfant"
+author: "Ecrit par: Philipp Schönfelder, Eliot Tadros, Olga Lopez Bodoque, Myriam Gueddana, Javier Toro Berrios "
 date: "`r Sys.Date()`"
 output: pdf_document
 classoption: a4paper
@@ -79,7 +79,6 @@ pheatmap(table(covariates$h_cohort, covariates$e3_yearbir_None),
 
 L'analyse en composantes principales nous permet d'identifier une forte corrélation avec la variable h_cohort, qui représente le pays dans lequel les données ont été collectées et à e3_yearbir_None qui représente l’année de naissance des enfants. Dans la suite du projet, nous ne prendrons en compte que la variable h_cohort. En effet, il semblerait que les cohortes ne soient pas créées en même temps car l'année de naissance est visiblement liée à la cohorte (chaque cohorte correspond à certaines années de naissance).
 
-Les familles d’exposition qui vont être considérés sont : Organochlorines, Air pollution, Phthalates, Lifestyle and PFAS.
 
 # Analyse des Exposomes de type Facteur
 
@@ -235,6 +234,8 @@ print(significant_values_num)
 ```
 Nous modifions les p_values pour les avoir en échelle logarithmique afin de pouvoir identifier visuellement quels exposomes sont significatifs, avant d'extraire la matrice des exposomes significatifs ainsi que leur p-value.
 
+Les familles d’exposition qui vont être considérés sont donc à la fin  : Organochlorines, Air pollution, Phthalates, Lifestyle and PFAS.
+
 # Analyse univarié: Effet des expositions sur le phénotype d'intérêt
 
 Nous nous concentrons maintenant sur l'effet de la famille "Organochlorines" sur le phénotype choisi. 
@@ -342,6 +343,11 @@ Par conséquent, il est donc raisonable de considérer un modèle statistique pl
 # References
 
 [1] Le cerveau de l'enfant: Source: https://www.cairn.info/revue-l-ecole-des-parents-2017-1-page-40.htm
-[2]Une étude de cohorte sur les problèmes comportementaux et l'intelligence chez les enfants avec une exposition prénatale élevée aux biphényles polychlorés écrit par Te-Jen Lai, Yue Liang Leon Guo, Nai Wen Geo et Xianchen Liu , Source: https://www.researchgate.net/publication/11046951_A_Cohort_Study_of_Behavioral_Problems_and_Intelligence_in_Children_With_High_Prenatal_Polychlorinated_Biphenyl_Exposure
+
+
+[2]Une étude de cohorte sur les problèmes comportementaux et l'intelligence chez les enfants avec une exposition prénatale élevée aux biphényles polychlorés écrit par Te-Jen Lai, Yue Liang Leon Guo, Nai Wen Geo et Xianchen Liu , Source:
+https://www.researchgate.net/publication/11046951_A_Cohort_Study_of_Behavioral_Problems_and_Intelligence_in_Children_With_High_Prenatal_Polychlorinated_Biphenyl_Exposure
+
+
 [3] Chapitre 4. La neuropsychologie de l’enfant (coll. B. Guillery et A. Roy), Source: https://www.cairn.info/manuel-de-neuropsychologie--9782100821358-page-279.htm
 
