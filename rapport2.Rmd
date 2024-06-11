@@ -1,6 +1,6 @@
 ---
 title: "Rapport EI Exposome: Influence des exposomes sur le développement comportemental et neuronal de l'enfant"
-author: "Ecrit par: Philipp Schönfelder, Eliot Tadros, Olga Lopez Bodoque, Myriam Gueddana, Javier Toro Berrios "
+author: "Ecrit par: Myriam Gueddana, Olga Lopez Bodoque, Philipp Schönfelder, Eliott Tadros, Javier Toro Berrios "
 date: "`r Sys.Date()`"
 output: pdf_document
 classoption: a4paper
