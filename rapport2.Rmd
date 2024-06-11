@@ -1,9 +1,16 @@
 ---
 title: "Rapport EI Exposome: Influence des exposomes sur le développement comportemental et neuronal de l'enfant"
-author: "Ecrit par: Myriam Gueddana, Olga Lopez Bodoque, Philipp Schönfelder, Eliott Tadros, Javier Toro Berrios "
+author: |
+  Myriam Gueddana,
+  Olga Lopez Bodoque,
+  Philipp Schönfelder,
+  Eliott Tadros,
+  Javier Toro Berrios
 date: "`r Sys.Date()`"
 output: pdf_document
 classoption: a4paper
+header-includes: 
+  - \renewcommand{\and}{\\}
 ---
 
 
@@ -82,7 +89,7 @@ L'analyse en composantes principales nous permet d'identifier une forte corréla
 
 # Analyse des Exposomes de type Facteur
 
-On prend maintenant les exposomes qualitatifs pour analyser leur impact sur le phénotype choisi, hs_Gen-Tot. Pour ce faire, nous transformons les facteurs en données numériques pour les traiter en obtenant leur p-value dans le modèle linéaire généralisé. On ajuste les p-values calculés et on les représentent sur une heatmap. Puis, pour pouvoir identifier si elles sont pertinentes ou non pour notre phénotype, on utilise le logarithme des valeurs. On constate qu'il n'y a pas de facteurs significatifs dans le comportement neuronal. C'est pour cette raison que le reste de l'analyse ne portera que sur les données numériques.
+On prend maintenant les exposomes qualitatifs pour analyser leur impact sur le phénotype choisi, hs_Gen-Tot. Pour ce faire, nous transformons les facteurs en données numériques pour les traiter en obtenant leur p-value dans le modèle linéaire généralisé. On ajuste les p-values calculés et on les représentent sur une heatmap. Puis, pour pouvoir identifier si elles sont pertinentes ou non pour notre phénotype, on utilise le logarithme des valeurs.
 
 ```{r, echo=FALSE}
 #Trier les facteurs
@@ -167,9 +174,11 @@ colnames(annotations) <- colnames(neg_log_p_values)
 significant_values_fac = cbind(pvalues_fact, pvalues_fact_adj, codebook$family[1:222][which(codebook$variable_name %in% rownames(pvalues_fact))])[annotations$hs_Gen_Tot == "Significant", ]
 
 ```
-Nous nous intéressons ensuite aux exposomes numériques afin de déterminer lesquels sont corrélés avec l'exposome que nous avons choisi, et ont ainsi une influence non négligeable. Nous utilisons à nouveau un modèle de régression linéaire généralisé pour cela et nous étudions les p-values, que nous aurons ajustées au préalable à l'aide de la méthode "False Discovery Rate" (FDR).
+On constate qu'il n'y a pas de facteurs significatifs dans le comportement neuronal. C'est pour cette raison que le reste de l'analyse ne portera que sur les données numériques.
 
 # Matrice de “corrélations” (p_values) entre les expositions numériques et les différents phénotypes
+
+Nous nous intéressons ensuite aux exposomes numériques afin de déterminer lesquels sont corrélés avec l'exposome que nous avons choisi, et ont ainsi une influence non négligeable. Nous utilisons à nouveau un modèle de régression linéaire généralisé pour cela et nous étudions les p-values, que nous aurons ajustées au préalable à l'aide de la méthode "False Discovery Rate" (FDR).
 ```{r p_values, echo=FALSE}
 
 df = data.frame(exposome_num[, -1], 
@@ -230,7 +239,7 @@ pheatmap(
 significant_values_num = cbind(pvalues_mat, pvalues_mat_ajuste, codebook$family[1:222][which(codebook$variable_name %in% rownames(pvalues_mat))])[annotations$hs_Gen_Tot == "Significant", ]
 rownames(significant_values_num) <- rownames(annotations)[which(annotations$hs_Gen_Tot == "Significant")]
 colnames(significant_values_num) <- c("pvalue", "Adjusted pvalue", "Family")
-print(significant_values_num)
+print(significant_values_num[,-1])
 ```
 Nous modifions les p_values pour les avoir en échelle logarithmique afin de pouvoir identifier visuellement quels exposomes sont significatifs, avant d'extraire la matrice des exposomes significatifs ainsi que leur p-value.
 
